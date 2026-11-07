@@ -108,8 +108,7 @@ document.getElementById('btn-load-data').addEventListener('click', async () => {
     const yearVal = document.getElementById('year-select').value;
     const classVal = document.getElementById('class-select').value;
 
-    // 파일명 조합 (HTML에서 2024 뒤에 공백을 주었으므로 바로 연결됩니다)
-    // 예: "2024 " + "투입산출표_생산자가격_" + "통합대분류" + ".xlsx"
+    // 파일명 조합
     const fileName = `${yearVal}투입산출표_생산자가격_${classVal}.xlsx`;
     
     const btn = document.getElementById('btn-load-data');
@@ -117,21 +116,21 @@ document.getElementById('btn-load-data').addEventListener('click', async () => {
     btn.disabled = true;
 
     try {
-        // 1. 깃허브 서버에 올라간 엑셀 파일 가져오기
+        // 1. 서버에서 엑셀 파일 가져오기
         const response = await fetch(`./${fileName}`);
-        if (!response.ok) {
-            throw new Error(`파일을 찾을 수 없습니다: ${fileName}`);
-        }
+        if (!response.ok) throw new Error(`파일을 찾을 수 없습니다: ${fileName}`);
         
-        // 2. 파일을 데이터 형태로 변환
         const arrayBuffer = await response.arrayBuffer();
         
-        // 3. 기존 분석 로직(파이썬)으로 데이터 전달
-        await load(arrayBuffer);
+        // 2. 👉 수정된 부분: 파이썬(Worker)으로 데이터 전송!
+        worker.postMessage({
+            type: 'upload',
+            data: arrayBuffer
+        });
         
         alert(`${fileName}\n데이터를 성공적으로 불러왔습니다! 이제 분석을 시작해보세요.`);
     } catch (error) {
-        alert("데이터 로드 실패: " + error.message + "\n(깃허브 저장소에 해당 엑셀 파일이 정확한 이름으로 업로드되었는지 확인해 주세요.)");
+        alert("데이터 로드 실패: " + error.message);
     } finally {
         btn.innerText = '데이터 서버에서 불러오기';
         btn.disabled = false;

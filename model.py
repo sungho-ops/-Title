@@ -67,3 +67,27 @@ def simulate(payload):
     result.sort(key=lambda r:r['production'],reverse=True)
     return emit({'demand':float(f.sum()),'production':float(x.sum()),'imports':float(m.sum()),
                  'valueAdded':float(v.sum()),'multiplier':float(x.sum()/f.sum()),'rows':result})
+def calculate_linkage_effects():
+    global L, names
+    
+    # 1. 역행렬 전체 원소의 평균 계산
+    total_mean = L.mean()
+    
+    # 2. 영향력 계수 (후방연쇄효과): 각 열의 평균 / 전체 평균
+    col_means = L.mean(axis=0)
+    power_of_dispersion = col_means / total_mean
+    
+    # 3. 감응도 계수 (전방연쇄효과): 각 행의 평균 / 전체 평균
+    row_means = L.mean(axis=1)
+    sensitivity_of_dispersion = row_means / total_mean
+    
+    # 4. JSON 형태의 문자열로 결과 반환
+    results = []
+    for i in range(len(names)):
+        results.append({
+            "sector": names[i],
+            "power": round(float(power_of_dispersion[i]), 4),
+            "sensitivity": round(float(sensitivity_of_dispersion[i]), 4)
+        })
+        
+    return json.dumps(results, ensure_ascii=False)

@@ -55,3 +55,51 @@ $('load-basic').onclick=async()=>{
   if($('sheet').disabled){button.disabled=false;button.textContent='기본부문 다시 불러오기';}
  }
 };
+// [연쇄효과 분석] 버튼 클릭 이벤트
+document.getElementById('btn-linkage').addEventListener('click', () => {
+    const btn = document.getElementById('btn-linkage');
+    btn.innerText = '데이터 분석 중...'; // 로딩 상태 표시
+
+    // 1. Worker(파이썬)로 linkage 분석 요청 보내기
+    const msgId = Date.now();
+    worker.postMessage({ id: msgId, type: 'linkage', payload: null });
+
+    // 2. Worker에서 보낸 결과 받기
+    const linkageHandler = function(e) {
+        // 내가 보낸 요청(msgId)에 대한 정상적인 응답(ok: true)인지 확인
+        if (e.data.id === msgId && e.data.ok) {
+            worker.removeEventListener('message', linkageHandler); 
+            
+            const results = e.data.result; // 파이썬에서 만든 JSON 데이터
+            const tbody = document.getElementById('linkage-tbody');
+            tbody.innerHTML = ''; // 기존 표 내용 초기화
+
+            // 3. 한 줄씩(tr) 표에 데이터 채워 넣기
+            results.forEach(item => {
+                // 두 계수가 모두 1 이상이면 '핵심 산업'으로 분류
+                const isKeySector = (item.power >= 1 && item.sensitivity >= 1);
+                
+                const tr = document.createElement('tr');
+                // 핵심 산업인 경우 배경색을 노란색으로 칠해 강조
+                if (isKeySector) tr.style.backgroundColor = '#fffacd'; 
+
+                tr.innerHTML = `
+                    <td>${item.sector}</td>
+                    <td>${item.power}</td>
+                    <td>${item.sensitivity}</td>
+                    <td style="color:${isKeySector ? 'red' : 'black'}; font-weight:${isKeySector ? 'bold' : 'normal'};">
+                        ${isKeySector ? '⭐ 핵심 선도산업' : '-'}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // 4. 숨겨져 있던 표를 화면에 보이게 하고 버튼 원상복구
+            document.getElementById('linkage-result').style.display = 'block';
+            btn.innerText = '연쇄효과 분석하기';
+        }
+    };
+
+    // 메시지 수신 대기
+    worker.addEventListener('message', linkageHandler);
+});

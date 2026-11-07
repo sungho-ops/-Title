@@ -22,10 +22,13 @@ async function handle({id,type,payload}) {
       py.globals.set('sheet_input',payload.sheet);
       py.globals.set('row_input',payload.row||'');
       result=py.runPython('explore(sheet_input, row_input)');
-    } else {
-      py.globals.set('scenario_input',JSON.stringify(payload));
-      result=py.runPython('simulate(scenario_input)');
-    }
+    } else if(type==='linkage') {
+            // 새로 추가된 연쇄효과 분석 파이썬 함수 실행
+            result = py.runPython('calculate_linkage_effects()');
+        } else {
+            py.globals.set('scenario_input',JSON.stringify(payload));
+            result=py.runPython('simulate(scenario_input)');
+        }
     postMessage({id,ok:true,result:JSON.parse(result)});
   } catch(error) { postMessage({id,ok:false,error:String(error)}); }
 }
